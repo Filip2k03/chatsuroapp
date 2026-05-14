@@ -1,13 +1,9 @@
 <?php
-// Secure Session Configuration
-ini_set('session.cookie_httponly', 1);
-ini_set('session.use_only_cookies', 1);
+// Removed redundant session_start() and ini_set() because index.php handles them globally.
 
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
-}
-require_once 'db.php';
-require_once 'crypto.php';
+// Using __DIR__ ensures absolute pathing regardless of how the Front Controller routes the request
+require_once __DIR__ . '/../core/db.php';
+require_once __DIR__ . '/../core/crypto.php';
 
 header('Content-Type: application/json');
 header('X-Content-Type-Options: nosniff');
