@@ -248,7 +248,7 @@
             this.hideNotificationToast();
         },
 
-        openNotificationModal() {
+        openNotificationPrompt() {
             $('notify-modal')?.classList.add('active');
             $('notify-modal-status').innerText = Notification.permission === 'denied'
                 ? 'Browser notifications are blocked. You must allow them in browser settings.'
@@ -512,9 +512,11 @@
             if (bottom) this.scroll();
 
             const latestIncoming = messages.filter(m => m.sender_role !== this.role).slice(-1)[0];
-            if (latestIncoming && latestIncoming.id > this.lastNotifiedMsgId) {
-                this.lastNotifiedMsgId = latestIncoming.id;
-                if (document.visibilityState !== 'visible' || this.currentReceiverId !== parseInt(this.currentReceiverId, 10)) {
+            if (latestIncoming) {
+                const incomingId = parseInt(latestIncoming.id, 10);
+                const activeView = document.querySelector('.view.active')?.id;
+                if (incomingId > this.lastNotifiedMsgId && (document.visibilityState !== 'visible' || activeView !== 'view-chat')) {
+                    this.lastNotifiedMsgId = incomingId;
                     this.notify(`New message from ${latestIncoming.sender_name || latestIncoming.sender_role}`, latestIncoming.text || 'Open Slopara to read it.');
                 }
             }
