@@ -1,16 +1,10 @@
 <?php
+require_once __DIR__ . '/../core/api.php';
 require_once __DIR__ . '/../core/db.php';
 require_once __DIR__ . '/../core/crypto.php';
 
 header('Content-Type: application/json');
 header('X-Content-Type-Options: nosniff');
-
-function json_response(array $payload, int $statusCode = 200): void
-{
-    http_response_code($statusCode);
-    echo json_encode($payload);
-    exit;
-}
 
 function can_message_user(PDO $pdo, int $currentUserId, string $currentRole, int $receiverId): bool
 {
@@ -30,26 +24,27 @@ function can_message_user(PDO $pdo, int $currentUserId, string $currentRole, int
 }
 
 if (!isset($_SESSION['user_id'])) {
-    json_response(["status" => "unauthorized"], 401);
+    api_response(["status" => "unauthorized", "message" => "Login required.", "data" => []], 401);
 }
 
-$action = $_POST['action'] ?? $_GET['action'] ?? '';
+$payload = api_payload();
+$action = $payload['action'] ?? $_GET['action'] ?? '';
 
 if ($action === 'send') {
-    $text = $_POST['message'] ?? '';
-    $type = $_POST['type'] ?? 'text'; // 'text' or 'file_snippet'
-    $receiver_id = isset($_POST['receiver_id']) ? (int)$_POST['receiver_id'] : 0;
+    $text = $payload['message'] ?? '';
+    $type = $payload['type'] ?? 'text';
+    $receiver_id = isset($payload['receiver_id']) ? (int)$payload['receiver_id'] : 0;
 
     if (empty(trim($text)) || $receiver_id === 0) {
-        json_response(["status" => "error", "message" => "Message and receiver are required."], 422);
+        api_error("Select a user and enter a message before sending.", 422);
     }
 
     if (!in_array($type, ['text', 'file_snippet'], true)) {
-        json_response(["status" => "error", "message" => "Invalid message type."], 422);
+        api_error("Invalid message type.", 422);
     }
 
     if (!can_message_user($pdo, (int)$_SESSION['user_id'], $_SESSION['role'] ?? '', $receiver_id)) {
-        json_response(["status" => "error", "message" => "Receiver is not available."], 403);
+        api_error("Receiver is not available.", 403);
     }
 
     // Encrypt BEFORE it touches the database
@@ -59,7 +54,7 @@ if ($action === 'send') {
     $stmt = $pdo->prepare("INSERT INTO messages (sender_id, receiver_id, encrypted_payload, message_type) VALUES (?, ?, ?, ?)");
     $stmt->execute([$_SESSION['user_id'], $receiver_id, $encrypted, $type]);
     
-    json_response(["status" => "sent"]);
+    api_success(["id" => (int)$pdo->lastInsertId()], "Message sent.");
 }
 
 if ($action === 'fetch') {
@@ -69,11 +64,11 @@ if ($action === 'fetch') {
     $me = $_SESSION['user_id'];
     
     if ($receiver_id === 0) {
-        json_response(["status" => "success", "data" => []]);
+        api_success(["messages" => []]);
     }
 
     if (!can_message_user($pdo, (int)$me, $_SESSION['role'] ?? '', $receiver_id)) {
-        json_response(["status" => "success", "data" => []]);
+        api_success(["messages" => []]);
     }
     
     // Fetch only NEW messages securely between YOU and the TARGET USER
@@ -94,7 +89,7 @@ if ($action === 'fetch') {
         unset($row['encrypted_payload']); // Strip ciphertext before sending to frontend
         $messages[] = $row;
     }
-    json_response(["status" => "success", "data" => $messages]);
+    api_response(["status" => "success", "message" => "OK", "data" => $messages]);
 }
 
 if ($action === 'users') {
@@ -121,7 +116,7 @@ if ($action === 'users') {
         $filteredUsers[] = $u;
     }
     
-    json_response(["status" => "success", "data" => $filteredUsers]);
+    api_response(["status" => "success", "message" => "OK", "data" => $filteredUsers]);
 }
 
-json_response(["status" => "error", "message" => "Unknown chat action."], 404);
+api_error("Unknown chat action.", 404);

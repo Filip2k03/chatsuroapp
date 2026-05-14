@@ -43,8 +43,9 @@
         <div class="chat-input">
             <button class="btn-snippet" onclick="document.getElementById('snippet-modal').classList.add('active')">{" "}</button>
             <input type="text" id="msg-input" placeholder="Execute transmission..." onkeypress="if(event.key==='Enter') app.send()">
-            <button onclick="app.send()">SEND</button>
+            <button id="send-btn" onclick="app.send()" disabled>SEND</button>
         </div>
+        <div id="chat-notice" class="chat-notice">Select a user before sending.</div>
     </div>
 
     <div id="view-profile" class="view">

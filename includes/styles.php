@@ -45,6 +45,11 @@
     .msg-recv { align-self: flex-start; background: var(--msg-recv); border-bottom-left-radius: 4px; border: 1px solid var(--glass-border); }
     .chat-input { position: absolute; bottom: 80px; left: 0; right: 0; padding: 0.8rem 1rem; border-top: 1px solid var(--glass-border); display: flex; gap: 10px; background: var(--glass-bg); backdrop-filter: blur(10px); }
     .chat-input input { margin: 0; flex: 1; } .chat-input button { margin: 0; width: auto; padding: 0 1.2rem; }
+    button:disabled { opacity: 0.45; cursor: not-allowed; transform: none; box-shadow: none; }
+    .chat-notice { position: absolute; left: 1rem; right: 1rem; bottom: 142px; padding: 0.6rem 0.8rem; border: 1px solid var(--glass-border); border-radius: 8px; color: var(--text-muted); background: rgba(15, 23, 42, 0.8); font-size: 0.75rem; text-align: center; display: none; }
+    .chat-notice.active { display: block; }
+    .chat-notice.error { color: #ff8a95; border-color: rgba(255, 71, 87, 0.45); }
+    .chat-notice.success { color: var(--online); border-color: rgba(72, 187, 120, 0.45); }
     .file-card { display: inline-block; background: rgba(0,0,0,0.2); padding: 8px; border-radius: 8px; color: var(--accent); text-decoration: none; border: 1px solid var(--accent); margin-top: 5px; }
 
     .bottom-nav { position: absolute; bottom: 15px; left: 50%; transform: translateX(-50%); width: 90%; background: var(--nav-bg); backdrop-filter: blur(20px); border: 1px solid var(--glass-border); border-radius: 30px; display: flex; justify-content: space-around; padding: 8px; box-shadow: 0 8px 32px rgba(0,0,0,0.3); z-index: 50; }
