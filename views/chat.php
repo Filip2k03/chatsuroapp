@@ -10,7 +10,7 @@
         <button id="install-dismiss-btn" type="button" class="ghost-btn">Later</button>
     </div>
 
-    <div id="view-login" class="view active">
+    <div id="view-login" class="view <?= $isLoggedIn ? '' : 'active' ?>">
         <div class="login-wrapper">
             <h1 class="logo">SLOPARA</h1>
             <p class="login-subtitle">// SECURE_SYSTEM_ACCESS_V3</p>
@@ -21,7 +21,7 @@
         </div>
     </div>
 
-    <div id="view-home" class="view">
+    <div id="view-home" class="view <?= $isLoggedIn ? 'active' : '' ?>">
         <div class="page-content">
             <div class="section-head">
                 <div>
@@ -75,7 +75,7 @@
         </div>
     </div>
 
-    <div id="view-admin" class="view" style="display:none;">
+    <div id="view-admin" class="view">
         <div class="page-content">
             <h2 class="page-title">System Admin | Mint Node</h2>
             <input type="text" id="new-u" placeholder="Operative Designation (Username)">
@@ -114,11 +114,11 @@
         </div>
     </div>
 
-    <div class="bottom-nav" id="bottom-nav" style="display:none;">
+    <div class="bottom-nav" id="bottom-nav" style="<?= $isLoggedIn ? 'display:flex;' : 'display:none;' ?>">
         <button class="nav-item active" data-target="view-home" type="button">Home</button>
         <!-- Removed Chat Icon from global nav per request. Users must select via Home. -->
         <button class="nav-item" data-target="view-profile" type="button">Profile</button>
-        <button class="nav-item" id="nav-admin" style="display:none;" data-target="view-admin" type="button">Admin</button>
+        <button class="nav-item" id="nav-admin" style="<?= strtolower($userRole) === 'admin' ? 'display:block;' : 'display:none;' ?>" data-target="view-admin" type="button">Admin</button>
         <button class="nav-item" data-target="view-settings" type="button">Settings</button>
     </div>
 

@@ -219,6 +219,7 @@
             $('profile-role').innerText = this.role;
             $('profile-avatar').innerText = this.role.charAt(0) || '?';
             $('view-login').classList.remove('active');
+            $('view-admin')?.classList.remove('active');
             $('bottom-nav').style.display = 'flex';
             if (this.role.toLowerCase() === 'admin') $('nav-admin').style.display = 'block';
             this.switchTab('view-home');
