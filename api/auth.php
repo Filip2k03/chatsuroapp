@@ -31,7 +31,8 @@ if ($action === 'heartbeat') {
     exit;
 }
 
-if ($action === 'create_user' && $_SESSION['role'] === 'Admin') {
+// FIX: Case-insensitive Admin check
+if ($action === 'create_user' && strtolower($_SESSION['role']) === 'admin') {
     $u = trim($_POST['new_username'] ?? '');
     $p = $_POST['new_password'] ?? '';
     $r = $_POST['new_role'] ?? 'Staff';
