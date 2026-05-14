@@ -12,12 +12,12 @@ $router = new Router();
 // Frontend Views
 $router->add('GET', '/chat', 'views/chat.php');
 
-// Secure API Endpoints
-$router->add('POST', '/api/auth', 'auth.php');
-$router->add('GET', '/api/auth', 'auth.php'); // Used for logout & heartbeat
-$router->add('POST', '/api/chat', 'chat_api.php');
-$router->add('GET', '/api/chat', 'chat_api.php');
-$router->add('POST', '/api/file', 'file_api.php');
+// Secure API Endpoints - Updated paths to include the /api/ directory
+$router->add('POST', '/api/auth', 'api/auth.php');
+$router->add('GET', '/api/auth', 'api/auth.php'); // Used for logout & heartbeat
+$router->add('POST', '/api/chat', 'api/chat_api.php');
+$router->add('GET', '/api/chat', 'api/chat_api.php');
+$router->add('POST', '/api/file', 'api/file_api.php');
 
 $router->dispatch($_SERVER['REQUEST_METHOD']);
 ?>
