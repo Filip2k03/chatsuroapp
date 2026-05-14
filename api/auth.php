@@ -87,6 +87,40 @@ if ($action === 'create_user') {
     api_error("Admin access required.", 403);
 }
 
+if ($action === 'update_user_role' && strtolower($_SESSION['role']) === 'admin') {
+    $username = trim($payload['username'] ?? '');
+    $role = $payload['role'] ?? '';
+
+    if ($username === '') {
+        api_error("Username is required.", 422);
+    }
+
+    if (!in_array($role, ['Admin', 'Staff', 'Finance'], true)) {
+        api_error("Invalid role selected.", 422);
+    }
+
+    $stmt = $pdo->prepare("SELECT id FROM users WHERE username = ?");
+    $stmt->execute([$username]);
+    $userId = $stmt->fetchColumn();
+
+    if (!$userId) {
+        api_error("User not found.", 404);
+    }
+
+    $stmt = $pdo->prepare("UPDATE users SET role = ? WHERE id = ?");
+    $stmt->execute([$role, $userId]);
+
+    api_response([
+        "status" => "success",
+        "message" => "User role updated.",
+        "data" => ["id" => (int)$userId, "username" => $username, "role" => $role],
+    ]);
+}
+
+if ($action === 'update_user_role') {
+    api_error("Admin access required.", 403);
+}
+
 if ($action === 'change_password') {
     $old = $payload['old_password'] ?? '';
     $new = $payload['new_password'] ?? '';
