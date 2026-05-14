@@ -1,14 +1,19 @@
 <?php
-// Using __DIR__ ensures absolute pathing regardless of how the Front Controller routes the request. 
-// This PERMANENTLY fixes the "Failed to open stream" error.
 require_once __DIR__ . '/../core/db.php';
 require_once __DIR__ . '/../core/crypto.php';
 
 header('Content-Type: application/json');
 header('X-Content-Type-Options: nosniff');
 
+function json_response(array $payload, int $statusCode = 200): void
+{
+    http_response_code($statusCode);
+    echo json_encode($payload);
+    exit;
+}
+
 if (!isset($_SESSION['user_id'])) {
-    die(json_encode(["status" => "unauthorized"]));
+    json_response(["status" => "unauthorized"], 401);
 }
 
 $action = $_POST['action'] ?? $_GET['action'] ?? '';
@@ -18,7 +23,13 @@ if ($action === 'send') {
     $type = $_POST['type'] ?? 'text'; // 'text' or 'file_snippet'
     $receiver_id = isset($_POST['receiver_id']) ? (int)$_POST['receiver_id'] : 0;
 
-    if (empty(trim($text)) || $receiver_id === 0) exit;
+    if (empty(trim($text)) || $receiver_id === 0) {
+        json_response(["status" => "error", "message" => "Message and receiver are required."], 422);
+    }
+
+    if (!in_array($type, ['text', 'file_snippet'], true)) {
+        json_response(["status" => "error", "message" => "Invalid message type."], 422);
+    }
 
     // Encrypt BEFORE it touches the database
     $encrypted = encrypt_payload($text);
@@ -27,8 +38,7 @@ if ($action === 'send') {
     $stmt = $pdo->prepare("INSERT INTO messages (sender_id, receiver_id, encrypted_payload, message_type) VALUES (?, ?, ?, ?)");
     $stmt->execute([$_SESSION['user_id'], $receiver_id, $encrypted, $type]);
     
-    echo json_encode(["status" => "sent"]);
-    exit;
+    json_response(["status" => "sent"]);
 }
 
 if ($action === 'fetch') {
@@ -38,8 +48,7 @@ if ($action === 'fetch') {
     $me = $_SESSION['user_id'];
     
     if ($receiver_id === 0) {
-        echo json_encode(["status" => "success", "data" => []]);
-        exit;
+        json_response(["status" => "success", "data" => []]);
     }
     
     // Fetch only NEW messages securely between YOU and the TARGET USER
@@ -60,8 +69,7 @@ if ($action === 'fetch') {
         unset($row['encrypted_payload']); // Strip ciphertext before sending to frontend
         $messages[] = $row;
     }
-    echo json_encode(["status" => "success", "data" => $messages]);
-    exit;
+    json_response(["status" => "success", "data" => $messages]);
 }
 
 if ($action === 'users') {
@@ -88,7 +96,7 @@ if ($action === 'users') {
         $filteredUsers[] = $u;
     }
     
-    echo json_encode(["status" => "success", "data" => $filteredUsers]);
-    exit;
+    json_response(["status" => "success", "data" => $filteredUsers]);
 }
-?>
+
+json_response(["status" => "error", "message" => "Unknown chat action."], 404);

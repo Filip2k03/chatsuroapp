@@ -1,6 +1,8 @@
 <script>
 const app = {
     role: null, online: true, afkTimer: null, pollTimer: null, hbTimer: null,
+    currentReceiverId: null,
+    currentReceiverName: '',
     
     // V2 Optimization Variables
     lastMsgId: 0,
@@ -61,6 +63,28 @@ const app = {
         if(id === 'view-chat') this.scroll();
     },
 
+    selectUser: function(id, name, role) {
+        this.currentReceiverId = parseInt(id, 10);
+        this.currentReceiverName = name || role || 'Selected user';
+        this.lastMsgId = 0;
+        this.currentPollInterval = this.minPollInterval;
+        document.getElementById('chat-target-label').innerText = `Channel: ${this.currentReceiverName}`;
+        document.getElementById('chat-messages').innerHTML = '<div style="text-align:center; font-size:0.8rem; color:var(--accent); margin-bottom:10px; text-transform:uppercase; letter-spacing: 2px;">Secured Channel</div>';
+        this.switchTab('view-chat');
+        clearTimeout(this.pollTimer);
+        this.pollData();
+    },
+
+    escapeHtml: function(value) {
+        return String(value ?? '').replace(/[&<>"']/g, char => ({
+            '&': '&amp;',
+            '<': '&lt;',
+            '>': '&gt;',
+            '"': '&quot;',
+            "'": '&#039;'
+        })[char]);
+    },
+
     pollData: async function() {
         if(!this.role) return;
         
@@ -73,12 +97,17 @@ const app = {
                 uData.data.forEach(u => {
                     if(u.role === this.role) return;
                     const isOnline = u.status === 'online';
+                    const userName = this.escapeHtml(u.username || u.role);
+                    const userRole = this.escapeHtml(u.role);
+                    const userNameArg = this.escapeHtml(JSON.stringify(u.username || u.role));
+                    const userRoleArg = this.escapeHtml(JSON.stringify(u.role));
                     html += `
-                        <div class="directory-card" onclick="app.switchTab('view-chat')">
+                        <div class="directory-card" onclick="app.selectUser(${parseInt(u.id, 10)}, ${userNameArg}, ${userRoleArg})">
                             <div class="dir-info">
-                                <div class="dir-avatar">${u.role.charAt(0)}</div>
+                                <div class="dir-avatar">${userRole.charAt(0)}</div>
                                 <div>
-                                    <strong style="color:var(--accent); letter-spacing:1px;">${u.role}</strong>
+                                    <strong style="color:var(--accent); letter-spacing:1px;">${userName}</strong>
+                                    <div style="font-size:0.75rem; color:var(--text-muted)">${userRole}</div>
                                     <div style="font-size:0.8rem; color:var(--text-muted)">
                                         <span class="status-dot ${isOnline ? '' : 'offline'}" style="display:inline-block; margin-right:5px;"></span>
                                         ${isOnline ? 'Active' : 'Offline'}
@@ -94,8 +123,13 @@ const app = {
         } catch(e) {}
 
         // V2: Fetch Chat Messages with Delta Caching (last_id)
+        if(!this.currentReceiverId) {
+            this.pollTimer = setTimeout(() => this.pollData(), this.currentPollInterval);
+            return;
+        }
+
         try {
-            const mRes = await fetch(`index.php?route=/api/chat&action=fetch&last_id=${this.lastMsgId}`); 
+            const mRes = await fetch(`index.php?route=/api/chat&action=fetch&last_id=${this.lastMsgId}&receiver_id=${this.currentReceiverId}`); 
             const mData = await mRes.json();
             if(mData.status === 'success') {
                 
@@ -109,7 +143,10 @@ const app = {
                     }
 
                     // Append ONLY new messages
-                    const newHtml = mData.data.map(m => `<div class="message msg-${m.sender_role===this.role?'sent':'recv'}"><div style="font-size:0.7rem;opacity:0.7;margin-bottom:3px;">${m.sender_role}</div>${m.text}</div>`).join('');
+                    const newHtml = mData.data.map(m => {
+                        const text = m.message_type === 'file_snippet' ? m.text : this.escapeHtml(m.text);
+                        return `<div class="message msg-${m.sender_role===this.role?'sent':'recv'}"><div style="font-size:0.7rem;opacity:0.7;margin-bottom:3px;">${this.escapeHtml(m.sender_name || m.sender_role)}</div>${text}</div>`;
+                    }).join('');
                     cb.innerHTML += newHtml;
                     
                     // Update cache state & snap polling speed back to MAX
@@ -129,8 +166,10 @@ const app = {
     },
 
     send: async function() {
+        if(!this.currentReceiverId) return;
         const i = document.getElementById('msg-input'); const v = i.value.trim(); if(!v) return; i.value = '';
         let fd = new FormData(); fd.append('action', 'send'); fd.append('message', v); fd.append('type', 'text');
+        fd.append('receiver_id', this.currentReceiverId);
         
         // V2: Snap polling to fast mode instantly on user action
         this.currentPollInterval = this.minPollInterval;
@@ -140,11 +179,13 @@ const app = {
     },
     
     sendFile: async function() {
+        if(!this.currentReceiverId) return;
         const txt = document.getElementById('snip-txt').value; const ext = document.getElementById('snip-ext').value; if(!txt) return;
         let fd = new FormData(); fd.append('content', txt); fd.append('extension', ext);
         const res = await fetch('index.php?route=/api/file', {method:'POST', body:fd}); const data = await res.json();
         if(data.status==='success') {
             let msgFd = new FormData(); msgFd.append('action', 'send'); msgFd.append('type', 'file_snippet');
+            msgFd.append('receiver_id', this.currentReceiverId);
             msgFd.append('message', `System Code Artifact Generated:<br><a href="${data.url}" download class="file-card">📦 Extract ${data.filename}</a>`);
             
             this.currentPollInterval = this.minPollInterval;
