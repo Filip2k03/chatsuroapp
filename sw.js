@@ -1,4 +1,4 @@
-const CACHE_NAME = 'slopara-chat-v1';
+const CACHE_NAME = 'slopara-chat-v3';
 const urlsToCache = [
     './',
     './index.php',
@@ -11,6 +11,16 @@ self.addEventListener('install', event => {
             return cache.addAll(urlsToCache);
         })
     );
+    self.skipWaiting();
+});
+
+self.addEventListener('activate', event => {
+    event.waitUntil(
+        caches.keys().then(keys => Promise.all(
+            keys.filter(key => key !== CACHE_NAME).map(key => caches.delete(key))
+        ))
+    );
+    self.clients.claim();
 });
 
 self.addEventListener('fetch', event => {
@@ -21,7 +31,7 @@ self.addEventListener('fetch', event => {
     
     event.respondWith(
         caches.match(event.request).then(response => {
-            return response || fetch(event.request);
+            return fetch(event.request).catch(() => response);
         })
     );
 });
