@@ -8,8 +8,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $content = $_POST['content'] ?? '';
     $ext = $_POST['extension'] ?? '.txt';
     
-    if (!in_array($ext, ['.py', '.html', '.txt'])) {
-        die(json_encode(["status" => "error", "message" => "Invalid extension."]));
+    // Expanded Developer File Extensions
+    $allowed = ['.py', '.html', '.txt', '.js', '.ts', '.php', '.css', '.json', '.md', '.sql'];
+    
+    if (!in_array($ext, $allowed)) {
+        die(json_encode(["status" => "error", "message" => "Invalid extension. Not permitted by server rules."]));
     }
 
     $dir = __DIR__ . '/../storage';
@@ -18,7 +21,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         file_put_contents($dir . '/.htaccess', "Options -Indexes\nphp_flag engine off");
     }
 
-    $filename = 'slopara_' . bin2hex(random_bytes(4)) . $ext;
+    $filename = 'slopara_mod_' . bin2hex(random_bytes(4)) . $ext;
     file_put_contents($dir . '/' . $filename, $content);
     
     echo json_encode(["status" => "success", "url" => 'storage/' . $filename, "filename" => $filename]);
