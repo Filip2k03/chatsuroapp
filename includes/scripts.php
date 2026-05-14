@@ -12,7 +12,7 @@ const app = {
     
     init: function() {
         const isLogged = <?= $isLoggedIn ? 'true' : 'false' ?>;
-        if(isLogged) this.completeLogin("<?= $userRole ?>");
+        if(isLogged) this.completeLogin(<?= json_encode($userRole) ?>);
     },
 
     login: async function() {
@@ -95,7 +95,6 @@ const app = {
             if(uData.status === 'success') {
                 let html = '';
                 uData.data.forEach(u => {
-                    if(u.role === this.role) return;
                     const isOnline = u.status === 'online';
                     const userName = this.escapeHtml(u.username || u.role);
                     const userRole = this.escapeHtml(u.role);
@@ -197,9 +196,34 @@ const app = {
     },
 
     createUser: async function() {
-        let fd = new FormData(); fd.append('action', 'create_user'); fd.append('new_username', document.getElementById('new-u').value); fd.append('new_password', document.getElementById('new-p').value); fd.append('new_role', document.getElementById('new-r').value);
-        const res = await fetch('index.php?route=/api/auth', {method:'POST', body:fd}); const data = await res.json();
-        document.getElementById('admin-msg').innerText = data.message; document.getElementById('admin-msg').style.color = data.status==='success'?'var(--online)':'#ff4757';
+        const msg = document.getElementById('admin-msg');
+        msg.innerText = 'Creating user...';
+        msg.style.color = 'var(--text-muted)';
+
+        let fd = new FormData();
+        fd.append('action', 'create_user');
+        fd.append('new_username', document.getElementById('new-u').value.trim());
+        fd.append('new_password', document.getElementById('new-p').value);
+        fd.append('new_role', document.getElementById('new-r').value);
+
+        try {
+            const res = await fetch('index.php?route=/api/auth', {method:'POST', body:fd});
+            const data = await res.json();
+
+            msg.innerText = data.message || (res.ok ? 'User created.' : 'Could not create user.');
+            msg.style.color = data.status==='success'?'var(--online)':'#ff4757';
+
+            if(data.status === 'success') {
+                document.getElementById('new-u').value = '';
+                document.getElementById('new-p').value = '';
+                this.currentPollInterval = this.minPollInterval;
+                clearTimeout(this.pollTimer);
+                this.pollData();
+            }
+        } catch(e) {
+            msg.innerText = 'Server returned an invalid response.';
+            msg.style.color = '#ff4757';
+        }
     },
     
     changePw: async function() {

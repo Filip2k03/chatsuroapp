@@ -16,15 +16,18 @@ CREATE TABLE users (
 CREATE TABLE messages (
     id INT AUTO_INCREMENT PRIMARY KEY,
     sender_id INT NOT NULL,
+    receiver_id INT NOT NULL,
     encrypted_payload TEXT NOT NULL,
     message_type ENUM('text', 'file_snippet') DEFAULT 'text',
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (sender_id) REFERENCES users(id) ON DELETE CASCADE
+    FOREIGN KEY (sender_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (receiver_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
 -- Performance Indexes for Real-time Polling
 CREATE INDEX idx_users_last_active ON users(last_active);
 CREATE INDEX idx_messages_created_at ON messages(created_at);
+CREATE INDEX idx_messages_conversation ON messages(sender_id, receiver_id, id);
 
 -- Insert Default Users (Passwords should be hashed in production)
 -- Assuming 'password123' for demonstration
