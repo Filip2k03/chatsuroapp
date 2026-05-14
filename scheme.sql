@@ -22,6 +22,10 @@ CREATE TABLE messages (
     FOREIGN KEY (sender_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
+-- Performance Indexes for Real-time Polling
+CREATE INDEX idx_users_last_active ON users(last_active);
+CREATE INDEX idx_messages_created_at ON messages(created_at);
+
 -- Insert Default Users (Passwords should be hashed in production)
 -- Assuming 'password123' for demonstration
 INSERT INTO users (username, password_hash, role) VALUES 

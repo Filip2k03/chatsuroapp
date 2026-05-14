@@ -1,9 +1,7 @@
 <?php
-// In a true production environment, load this from an .env file
-define('APP_KEY', 'SloparaSuperSecretEnterpriseKey2026!@#$');
-
 function encrypt_payload($string) {
     $cipher = "aes-256-cbc";
+    $app_key = env('APP_KEY', 'SloparaFallbackKey2026!@#$');
     $iv_length = openssl_cipher_iv_length($cipher);
     
     // Generate secure random Initialization Vector (IV)
@@ -18,6 +16,7 @@ function encrypt_payload($string) {
 
 function decrypt_payload($string) {
     $cipher = "aes-256-cbc";
+    $app_key = env('APP_KEY', 'SloparaFallbackKey2026!@#$');
     
     // Decode and split IV from Ciphertext
     list($encrypted_data, $iv) = explode('::', base64_decode($string), 2);
@@ -28,6 +27,6 @@ function decrypt_payload($string) {
     }
     
     // Decrypt and return original text
-    return openssl_decrypt($encrypted_data, $cipher, APP_KEY, 0, $iv);
+    return openssl_decrypt($encrypted_data, $cipher, $app_key, 0, $iv);
 }
 ?>

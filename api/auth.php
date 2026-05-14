@@ -1,8 +1,18 @@
 <?php
-session_start();
+// Secure Session Configuration
+ini_set('session.cookie_httponly', 1);
+ini_set('session.use_only_cookies', 1);
+ini_set('session.cookie_samesite', 'Strict');
+
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
 require_once 'db.php';
 
 header('Content-Type: application/json');
+header('X-Content-Type-Options: nosniff');
+header('X-Frame-Options: DENY');
+
 $action = $_POST['action'] ?? $_GET['action'] ?? '';
 
 if ($action === 'login') {

@@ -1,35 +1,55 @@
-Slopara Secure Chat - System Blueprint
+Slopara Secure Chat - Enterprise MVC Blueprint
 
 Tech Stack
 
-Frontend: HTML5, CSS3 (Liquid Glass UI), Vanilla JavaScript
+Frontend: HTML5, CSS3 (Liquid Glass UI), Vanilla JavaScript (Separated Components)
 
-Backend: Pure PHP 8.x
+Backend: Pure PHP 8.x MVC Architecture
 
-Database: MySQL / MariaDB
+Database: MySQL / MariaDB (Indexed for high-speed polling)
 
-Security: OpenSSL AES-256-CBC (Message Encryption), Argon2id (Password Hashing)
+Security: OpenSSL AES-256-CBC, Argon2id, HTTPOnly Strict Sessions, ENV Configuration
 
-The 8-File Production Architecture
+The MVC Directory Structure
 
-index.html - The Single Page Application (SPA) frontend.
+/ (Root)
 
-schema.sql - Database table definitions.
+index.php - Front Controller & MVC Entry Point.
 
-db.php - PDO Database connection wrapper.
+.env - Secure Environment Variables (Excluded from git).
 
-crypto.php - Utility functions for AES encryption/decryption.
+.htaccess - Clean URL rewrite engine for Apache.
 
-auth.php - Handles login validation, sessions, and AFK heartbeat.
+/core/
 
-chat_api.php - Handles storing and fetching encrypted messages.
+env.php - Custom .env parsing engine.
 
-file_api.php - Converts text payloads into downloadable .py or .html files.
+router.php - Custom API & View routing dispatcher.
 
-blueprint.md - Documentation.
+/includes/
 
-Core Mechanisms
+header.php - Dynamic HTML <head> injection.
 
-AFK Tracker: Frontend JS tracks mousemove/keydown. If idle > 120s, it pauses the heartbeat. auth.php updates last_active. If NOW() - last_active > 120, the user is marked offline globally.
+styles.php - Separated CSS styling logic.
 
-Zero-Knowledge DB: Messages are encrypted in chat_api.php before hitting MySQL. A database breach reveals only ciphertext.
+scripts.php - Separated JS polling & UI logic.
+
+/views/
+
+chat.php - The main DOM structure and UI wrapper.
+
+/api/ (Root Handlers)
+
+auth.php, chat_api.php, file_api.php - Secure API logic.
+
+crypto.php, db.php - Database and Encryption engines.
+
+Security Upgrades
+
+Zero-Knowledge DB: Encrypted at rest using env('APP_KEY').
+
+Environment Engine: Database credentials are no longer hardcoded in PHP.
+
+Session Hardening: Cookies restricted via HttpOnly and SameSite=Strict.
+
+Clean URLs: Traffic is funneled through index.php, protecting direct access to core files.
