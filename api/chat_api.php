@@ -12,6 +12,23 @@ function json_response(array $payload, int $statusCode = 200): void
     exit;
 }
 
+function can_message_user(PDO $pdo, int $currentUserId, string $currentRole, int $receiverId): bool
+{
+    if ($receiverId === $currentUserId) {
+        return false;
+    }
+
+    $stmt = $pdo->prepare("SELECT role FROM users WHERE id = ?");
+    $stmt->execute([$receiverId]);
+    $receiverRole = $stmt->fetchColumn();
+
+    if (!$receiverRole) {
+        return false;
+    }
+
+    return strtolower($currentRole) === 'admin' || strtolower($receiverRole) === 'admin';
+}
+
 if (!isset($_SESSION['user_id'])) {
     json_response(["status" => "unauthorized"], 401);
 }
@@ -31,6 +48,10 @@ if ($action === 'send') {
         json_response(["status" => "error", "message" => "Invalid message type."], 422);
     }
 
+    if (!can_message_user($pdo, (int)$_SESSION['user_id'], $_SESSION['role'] ?? '', $receiver_id)) {
+        json_response(["status" => "error", "message" => "Receiver is not available."], 403);
+    }
+
     // Encrypt BEFORE it touches the database
     $encrypted = encrypt_payload($text);
     
@@ -48,6 +69,10 @@ if ($action === 'fetch') {
     $me = $_SESSION['user_id'];
     
     if ($receiver_id === 0) {
+        json_response(["status" => "success", "data" => []]);
+    }
+
+    if (!can_message_user($pdo, (int)$me, $_SESSION['role'] ?? '', $receiver_id)) {
         json_response(["status" => "success", "data" => []]);
     }
     
