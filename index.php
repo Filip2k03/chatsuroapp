@@ -17,17 +17,17 @@ $route = $_GET['route'] ?? '/chat';
 
 switch ($route) {
     case '/api/auth':
-        require_once 'api/auth.php';
+        require_once __DIR__ . '/api/auth.php';
         break;
     case '/api/chat':
-        require_once 'api/chat_api.php';
+        require_once __DIR__ . '/api/chat_api.php';
         break;
     case '/api/file':
-        require_once 'api/file_api.php';
+        require_once __DIR__ . '/api/file_api.php';
         break;
     case '/chat':
     default:
-        require_once 'views/chat.php';
+        require_once __DIR__ . '/views/chat.php';
         break;
 }
 ?>

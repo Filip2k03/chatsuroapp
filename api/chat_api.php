@@ -1,6 +1,6 @@
 <?php
-require_once 'core/db.php';
-require_once 'core/crypto.php';
+require_once __DIR__ . '/../core/db.php';
+require_once __DIR__ . '/../core/crypto.php';
 header('Content-Type: application/json');
 
 if (!isset($_SESSION['user_id'])) die(json_encode(["status" => "unauthorized"]));
