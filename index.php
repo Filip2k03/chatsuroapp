@@ -1,15 +1,13 @@
 <?php
-// V1 Enterprise Security - Apply before session starts
-ini_set('session.cookie_httponly', 1);
-ini_set('session.use_only_cookies', 1);
-ini_set('session.cookie_samesite', 'Strict');
-
 if (session_status() === PHP_SESSION_NONE) {
+    ini_set('session.cookie_httponly', '1');
+    ini_set('session.use_only_cookies', '1');
+    ini_set('session.cookie_samesite', 'Strict');
     session_start();
 }
 
 // Load Environment Engine
-require_once 'core/env.php';
+require_once __DIR__ . '/core/env.php';
 load_env(__DIR__ . '/.env');
 
 // Simple MVC Router

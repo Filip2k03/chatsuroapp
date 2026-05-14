@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>404 - Not Found</title>
+    <style>
+        :root {
+            color-scheme: dark;
+            --bg: #0f172a;
+            --panel: #111827;
+            --text: #f8fafc;
+            --muted: #94a3b8;
+            --accent: #00f0ff;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            min-height: 100vh;
+            margin: 0;
+            display: grid;
+            place-items: center;
+            background: var(--bg);
+            color: var(--text);
+            font-family: "Segoe UI", system-ui, sans-serif;
+        }
+
+        main {
+            width: min(92vw, 420px);
+            padding: 32px;
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            border-radius: 8px;
+            background: var(--panel);
+            text-align: center;
+        }
+
+        h1 {
+            margin: 0 0 12px;
+            color: var(--accent);
+            font-size: 2rem;
+        }
+
+        p {
+            margin: 0 0 24px;
+            color: var(--muted);
+            line-height: 1.5;
+        }
+
+        a {
+            color: var(--bg);
+            background: var(--accent);
+            display: inline-block;
+            padding: 12px 18px;
+            border-radius: 6px;
+            font-weight: 700;
+            text-decoration: none;
+        }
+    </style>
+</head>
+<body>
+    <main>
+        <h1>404</h1>
+        <p>The requested page does not exist.</p>
+        <a href="/">Return Home</a>
+    </main>
+</body>
+</html>

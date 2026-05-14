@@ -1,4 +1,4 @@
-<?php require_once 'includes/header.php'; ?>
+<?php require_once __DIR__ . '/../includes/header.php'; ?>
 
 <div id="app-container">
     <div id="view-login" class="view active">
@@ -27,7 +27,11 @@
         <div class="chat-header">
             <div style="display:flex; align-items:center; gap:10px;">
                 <div id="my-status-dot" class="status-dot"></div>
-                <div><strong id="my-role-display" style="color:var(--accent)">Role</strong><div id="my-status-text" style="font-size:0.7rem; color:var(--text-muted); text-transform:uppercase;">Online</div></div>
+                <div>
+                    <strong id="my-role-display" style="color:var(--accent)">Role</strong>
+                    <div id="chat-target-label" style="font-size:0.7rem; color:var(--text-muted); text-transform:uppercase;">No channel selected</div>
+                    <div id="my-status-text" style="font-size:0.7rem; color:var(--text-muted); text-transform:uppercase;">Online</div>
+                </div>
             </div>
             <button onclick="app.switchTab('view-home')" class="btn-snippet" style="width:auto; padding:5px 15px; margin:0;">DISCONNECT</button>
         </div>
@@ -116,6 +120,6 @@
     </div>
 </div>
 
-<?php require_once 'includes/scripts.php'; ?>
+<?php require_once __DIR__ . '/../includes/scripts.php'; ?>
 </body>
 </html>

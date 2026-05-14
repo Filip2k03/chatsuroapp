@@ -24,6 +24,6 @@ $userRole = $_SESSION['role'] ?? '';
     </script>
 
     <!-- Dynamically injecting the separated CSS file -->
-    <?php require_once 'includes/styles.php'; ?>
+    <?php require_once __DIR__ . '/styles.php'; ?>
 </head>
 <body class="dark-mode">

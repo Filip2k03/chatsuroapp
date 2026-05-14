@@ -1,14 +1,11 @@
 RewriteEngine On
 
-Prevent directory browsing
-
+# Prevent directory browsing
 Options -Indexes
 
-If the requested filename is not a directory or a physical file
-
+# If the requested filename is not a directory or a physical file
 RewriteCond %{REQUEST_FILENAME} !-d
 RewriteCond %{REQUEST_FILENAME} !-f
 
-Route all traffic through the MVC Front Controller
-
+# Route all traffic through the MVC Front Controller
 RewriteRule ^(.*)$ index.php?route=/$1 [L,QSA]
