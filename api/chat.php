@@ -6,8 +6,8 @@ ini_set('session.use_only_cookies', 1);
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
-require_once 'db.php';
-require_once 'crypto.php';
+require_once 'core/db.php'; // Or 'db.php' depending on your folder layout
+require_once 'core/crypto.php';
 
 header('Content-Type: application/json');
 header('X-Content-Type-Options: nosniff');

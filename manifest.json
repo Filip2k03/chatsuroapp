@@ -1,0 +1,21 @@
+{
+"name": "Slopara Secure Chat",
+"short_name": "Slopara",
+"start_url": "./",
+"display": "standalone",
+"background_color": "#0f172a",
+"theme_color": "#00f0ff",
+"orientation": "portrait",
+"icons": [
+{
+"src": "https://placehold.co/192x192/0f172a/00f0ff?text=S",
+"sizes": "192x192",
+"type": "image/png"
+},
+{
+"src": "https://placehold.co/512x512/0f172a/00f0ff?text=S",
+"sizes": "512x512",
+"type": "image/png"
+}
+]
+}

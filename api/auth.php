@@ -7,7 +7,7 @@ ini_set('session.cookie_samesite', 'Strict');
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
-require_once 'db.php';
+require_once 'core/db.php'; // Adjusted to use core/ if moved, or just 'db.php' if in same root
 
 header('Content-Type: application/json');
 header('X-Content-Type-Options: nosniff');

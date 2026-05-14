@@ -9,6 +9,20 @@ $userRole = $_SESSION['role'] ?? '';
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?= env('APP_NAME', 'Slopara') ?> Secure Enterprise</title>
     
+    <!-- PWA Implementation -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#0f172a">
+    <link rel="apple-touch-icon" href="https://placehold.co/192x192/0f172a/00f0ff?text=S">
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('sw.js')
+                    .then(reg => console.log('PWA Service Worker Active'))
+                    .catch(err => console.log('PWA Registration Failed', err));
+            });
+        }
+    </script>
+
     <!-- Dynamically injecting the separated CSS file -->
     <?php require_once 'includes/styles.php'; ?>
 </head>

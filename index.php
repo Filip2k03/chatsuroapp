@@ -1,4 +1,9 @@
 <?php
+// Secure Session Configuration (Must be before session_start)
+ini_set('session.cookie_httponly', 1);
+ini_set('session.use_only_cookies', 1);
+ini_set('session.cookie_samesite', 'Strict');
+
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }

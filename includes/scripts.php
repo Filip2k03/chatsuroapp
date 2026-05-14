@@ -76,6 +76,48 @@
             this.startPolling();
         },
 
+        changePassword: async function() {
+            const btn = document.querySelector('#view-settings button[onclick="app.changePassword()"]');
+            const msgBox = document.getElementById('pw-msg');
+            const oldPw = document.getElementById('pw-old').value;
+            const newPw = document.getElementById('pw-new').value;
+
+            if (!oldPw || !newPw) {
+                msgBox.style.color = '#ff4757';
+                msgBox.innerText = 'Both fields required.';
+                msgBox.style.display = 'block';
+                return;
+            }
+
+            btn.innerText = "Rotating...";
+            
+            const fd = new FormData();
+            fd.append('action', 'change_password');
+            fd.append('old_password', oldPw);
+            fd.append('new_password', newPw);
+
+            try {
+                const res = await fetch('index.php?route=/api/auth', { method: 'POST', body: fd });
+                const data = await res.json();
+                
+                msgBox.style.display = 'block';
+                if (data.status === 'success') {
+                    msgBox.style.color = 'var(--online)';
+                    msgBox.innerText = data.message;
+                    document.getElementById('pw-old').value = '';
+                    document.getElementById('pw-new').value = '';
+                } else {
+                    msgBox.style.color = '#ff4757';
+                    msgBox.innerText = data.message;
+                }
+            } catch(e) {
+                msgBox.style.color = '#ff4757';
+                msgBox.innerText = 'Network error during rotation.';
+                msgBox.style.display = 'block';
+            }
+            btn.innerText = "Rotate Password";
+        },
+
         createUser: async function() {
             const btn = document.querySelector('#view-admin button');
             const msgBox = document.getElementById('admin-msg');

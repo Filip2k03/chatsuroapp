@@ -100,6 +100,25 @@
                 <div><strong>Dark Mode</strong><div style="font-size: 0.8rem; color: var(--text-muted)">Neon Tech interface</div></div>
                 <label class="switch"><input type="checkbox" id="theme-toggle" checked onchange="app.toggleTheme()"><span class="slider"></span></label>
             </div>
+
+            <!-- New Security Center Section -->
+            <div style="background: rgba(0,0,0,0.2); padding: 1.5rem; border-radius: 16px; border: 1px solid var(--glass-border); margin-top: 20px;">
+                <h3 style="color: var(--text-main); margin-bottom: 1rem; font-size: 1.1rem;">Security Center</h3>
+                
+                <div class="admin-form-group">
+                    <label>Current Passphrase</label>
+                    <input type="password" id="pw-old" placeholder="Enter current password">
+                </div>
+                
+                <div class="admin-form-group">
+                    <label>New Passphrase</label>
+                    <input type="password" id="pw-new" placeholder="Enter new strong password">
+                </div>
+                
+                <div id="pw-msg" style="font-size: 0.85rem; margin-bottom: 10px; text-align: center; display: none;"></div>
+                <button onclick="app.changePassword()" style="background: transparent; border: 1px solid var(--accent); color: var(--accent);">Rotate Password</button>
+            </div>
+
             <button style="background: rgba(255, 71, 87, 0.2); color: #ff4757; border: 1px solid #ff4757; margin-top: 20px;" onclick="app.logout()">Terminate Session (Logout)</button>
         </div>
     </div>
