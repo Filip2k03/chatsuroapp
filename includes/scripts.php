@@ -1,301 +1,137 @@
 <script>
-    const app = {
-        currentUser: null,
-        isOnline: true,
-        afkTimer: null,
-        pollInterval: null,
-        heartbeatInterval: null,
-        AFK_LIMIT: 120000, 
+const app = {
+    role: null, online: true, afkTimer: null, pollTimer: null, hbTimer: null,
+    
+    init: function() {
+        const isLogged = <?= $isLoggedIn ? 'true' : 'false' ?>;
+        if(isLogged) this.completeLogin("<?= $userRole ?>");
+    },
 
-        init: function() {
-            // PHP injects initial session state
-            const isLogged = <?= $isLoggedIn ? 'true' : 'false' ?>;
-            const role = "<?= $userRole ?>";
-            
-            if(isLogged && role) {
-                this.completeLogin(role);
+    login: async function() {
+        const u = document.getElementById('login-user').value;
+        const p = document.getElementById('login-pass').value;
+        const err = document.getElementById('login-error');
+        if(!u || !p) { err.innerText = "Fields required"; err.style.display="block"; return; }
+        
+        let fd = new FormData(); fd.append('action', 'login'); fd.append('username', u); fd.append('password', p);
+        try {
+            const res = await fetch('index.php?route=/api/auth', { method: 'POST', body: fd });
+            const data = await res.json();
+            if(data.status === 'success') { err.style.display="none"; this.completeLogin(data.role); }
+            else { err.innerText = data.message; err.style.display="block"; }
+        } catch(e) { err.innerText = "Network Error"; err.style.display="block"; }
+    },
+    
+    completeLogin: function(role) {
+        this.role = role;
+        document.getElementById('my-role-display').innerText = role;
+        document.getElementById('profile-role').innerText = role;
+        document.getElementById('profile-avatar').innerText = role.charAt(0);
+        
+        document.getElementById('view-login').classList.remove('active');
+        document.getElementById('bottom-nav').style.display = 'flex';
+        if(role === 'Admin') document.getElementById('nav-admin').style.display = 'flex';
+        
+        this.switchTab('view-home'); // Default to directory now
+        this.initAFK(); this.pollData();
+        this.pollTimer = setInterval(() => this.pollData(), 2000);
+        this.hbTimer = setInterval(() => { if(this.online) fetch('index.php?route=/api/auth&action=heartbeat'); }, 30000);
+    },
+
+    switchTab: function(id) {
+        document.querySelectorAll('.view').forEach(v => { if(v.id !== 'view-login') v.classList.remove('active'); });
+        document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+        document.getElementById(id).classList.add('active');
+        document.querySelector(`.nav-item[data-target="${id}"]`).classList.add('active');
+        if(id === 'view-chat') this.scroll();
+    },
+
+    pollData: async function() {
+        if(!this.role) return;
+        
+        // Fetch Users for Directory
+        try {
+            const uRes = await fetch('index.php?route=/api/chat&action=users'); 
+            const uData = await uRes.json();
+            if(uData.status === 'success') {
+                let html = '';
+                uData.data.forEach(u => {
+                    if(u.role === this.role) return; // Skip self
+                    const isOnline = u.status === 'online';
+                    html += `
+                        <div class="directory-card" onclick="app.switchTab('view-chat')">
+                            <div class="dir-info">
+                                <div class="dir-avatar">${u.role.charAt(0)}</div>
+                                <div>
+                                    <strong style="color:var(--accent)">${u.role}</strong>
+                                    <div style="font-size:0.8rem; color:var(--text-muted)">
+                                        <span class="status-dot ${isOnline ? '' : 'offline'}" style="display:inline-block; margin-right:5px;"></span>
+                                        ${isOnline ? 'Active Now' : 'Offline'}
+                                    </div>
+                                </div>
+                            </div>
+                            <span style="font-size:1.2rem;">💬</span>
+                        </div>
+                    `;
+                });
+                document.getElementById('directory-list').innerHTML = html || '<div style="text-align:center; color:var(--text-muted); margin-top:2rem;">No visible users.</div>';
             }
-        },
+        } catch(e) {}
 
-        login: async function() {
-            const userBox = document.getElementById('login-user');
-            const passBox = document.getElementById('login-pass');
-            const errorMsg = document.getElementById('login-error');
-            const authBtn = document.querySelector('#view-login button');
-            
-            if (!userBox.value || !passBox.value) {
-                errorMsg.innerText = "Error: Fields required.";
-                errorMsg.style.display = 'block';
-                return;
+        // Fetch Chat Messages
+        try {
+            const mRes = await fetch('index.php?route=/api/chat&action=fetch'); 
+            const mData = await mRes.json();
+            if(mData.status === 'success') {
+                const cb = document.getElementById('chat-messages'); 
+                const bottom = cb.scrollHeight - cb.scrollTop <= cb.clientHeight + 50;
+                cb.innerHTML = '<div style="text-align:center; font-size:0.8rem; color:var(--text-muted); margin-bottom:10px;">Enterprise AES-256 Enabled</div>' + 
+                mData.data.map(m => `<div class="message msg-${m.sender_role===this.role?'sent':'recv'}"><div style="font-size:0.7rem;opacity:0.7">${m.sender_role}</div>${m.text}</div>`).join('');
+                if(bottom) this.scroll();
             }
+        } catch(e) {}
+    },
 
-            authBtn.innerText = 'Authenticating...';
-            errorMsg.style.display = 'none';
-            
-            try {
-                const formData = new FormData();
-                formData.append('action', 'login');
-                formData.append('username', userBox.value);
-                formData.append('password', passBox.value);
+    send: async function() {
+        const i = document.getElementById('msg-input'); const v = i.value.trim(); if(!v) return; i.value = '';
+        let fd = new FormData(); fd.append('action', 'send'); fd.append('message', v); fd.append('type', 'text');
+        await fetch('index.php?route=/api/chat', {method:'POST', body:fd}); this.pollData(); this.scroll();
+    },
+    
+    sendFile: async function() {
+        const txt = document.getElementById('snip-txt').value; const ext = document.getElementById('snip-ext').value; if(!txt) return;
+        let fd = new FormData(); fd.append('content', txt); fd.append('extension', ext);
+        const res = await fetch('index.php?route=/api/file', {method:'POST', body:fd}); const data = await res.json();
+        if(data.status==='success') {
+            let msgFd = new FormData(); msgFd.append('action', 'send'); msgFd.append('type', 'file_snippet');
+            msgFd.append('message', `File Generated:<br><a href="${data.url}" download class="file-card">📄 Download ${data.filename}</a>`);
+            await fetch('index.php?route=/api/chat', {method:'POST', body:msgFd});
+            document.getElementById('snippet-modal').classList.remove('active'); document.getElementById('snip-txt').value=''; this.pollData();
+        } else { alert(data.message); }
+    },
 
-                // Re-routed to the new API path
-                const res = await fetch('index.php?route=/api/auth', { method: 'POST', body: formData });
-                const data = await res.json();
+    createUser: async function() {
+        let fd = new FormData(); fd.append('action', 'create_user'); fd.append('new_username', document.getElementById('new-u').value); fd.append('new_password', document.getElementById('new-p').value); fd.append('new_role', document.getElementById('new-r').value);
+        const res = await fetch('index.php?route=/api/auth', {method:'POST', body:fd}); const data = await res.json();
+        document.getElementById('admin-msg').innerText = data.message; document.getElementById('admin-msg').style.color = data.status==='success'?'var(--online)':'#ff4757';
+    },
+    
+    changePw: async function() {
+        let fd = new FormData(); fd.append('action', 'change_password'); fd.append('old_password', document.getElementById('pw-old').value); fd.append('new_password', document.getElementById('pw-new').value);
+        const res = await fetch('index.php?route=/api/auth', {method:'POST', body:fd}); const data = await res.json();
+        document.getElementById('pw-msg').innerText = data.message; document.getElementById('pw-msg').style.color = data.status==='success'?'var(--online)':'#ff4757';
+    },
 
-                if (data.status === 'success') {
-                    this.completeLogin(data.role);
-                } else {
-                    errorMsg.innerText = data.message;
-                    errorMsg.style.display = 'block';
-                }
-            } catch (e) {
-                errorMsg.innerText = "Network Error.";
-                errorMsg.style.display = 'block';
-            }
-            authBtn.innerText = 'Authenticate';
-        },
-
-        completeLogin: function(role) {
-            this.currentUser = role;
-            
-            document.getElementById('my-role-display').innerText = role;
-            document.getElementById('profile-name').innerText = role;
-            document.getElementById('profile-role').innerText = role;
-            document.getElementById('profile-avatar').innerText = role.charAt(0);
-            
-            document.getElementById('view-login').classList.remove('active');
-            document.getElementById('bottom-nav').style.display = 'flex';
-            
-            if (role === 'Admin') {
-                document.getElementById('nav-admin').style.display = 'flex';
-            }
-            
-            this.switchTab('view-chat'); 
-            this.isOnline = true;
-            this.initAFKTracking();
-            this.startPolling();
-        },
-
-        changePassword: async function() {
-            const btn = document.querySelector('#view-settings button[onclick="app.changePassword()"]');
-            const msgBox = document.getElementById('pw-msg');
-            const oldPw = document.getElementById('pw-old').value;
-            const newPw = document.getElementById('pw-new').value;
-
-            if (!oldPw || !newPw) {
-                msgBox.style.color = '#ff4757';
-                msgBox.innerText = 'Both fields required.';
-                msgBox.style.display = 'block';
-                return;
-            }
-
-            btn.innerText = "Rotating...";
-            
-            const fd = new FormData();
-            fd.append('action', 'change_password');
-            fd.append('old_password', oldPw);
-            fd.append('new_password', newPw);
-
-            try {
-                const res = await fetch('index.php?route=/api/auth', { method: 'POST', body: fd });
-                const data = await res.json();
-                
-                msgBox.style.display = 'block';
-                if (data.status === 'success') {
-                    msgBox.style.color = 'var(--online)';
-                    msgBox.innerText = data.message;
-                    document.getElementById('pw-old').value = '';
-                    document.getElementById('pw-new').value = '';
-                } else {
-                    msgBox.style.color = '#ff4757';
-                    msgBox.innerText = data.message;
-                }
-            } catch(e) {
-                msgBox.style.color = '#ff4757';
-                msgBox.innerText = 'Network error during rotation.';
-                msgBox.style.display = 'block';
-            }
-            btn.innerText = "Rotate Password";
-        },
-
-        createUser: async function() {
-            const btn = document.querySelector('#view-admin button');
-            const msgBox = document.getElementById('admin-msg');
-            const u = document.getElementById('new-user').value;
-            const p = document.getElementById('new-pass').value;
-            const r = document.getElementById('new-role').value;
-
-            if(!u || !p) {
-                msgBox.style.color = '#ff4757';
-                msgBox.innerText = 'Username and Password required.';
-                msgBox.style.display = 'block';
-                return;
-            }
-
-            btn.innerText = "Provisioning...";
-            
-            const fd = new FormData();
-            fd.append('action', 'create_user');
-            fd.append('new_username', u);
-            fd.append('new_password', p);
-            fd.append('new_role', r);
-
-            try {
-                const res = await fetch('index.php?route=/api/auth', { method: 'POST', body: fd });
-                const data = await res.json();
-                
-                msgBox.style.display = 'block';
-                if(data.status === 'success') {
-                    msgBox.style.color = 'var(--online)';
-                    msgBox.innerText = data.message;
-                    document.getElementById('new-user').value = '';
-                    document.getElementById('new-pass').value = '';
-                } else {
-                    msgBox.style.color = '#ff4757';
-                    msgBox.innerText = data.message;
-                }
-            } catch(e) {
-                msgBox.style.color = '#ff4757';
-                msgBox.innerText = 'Network error during provisioning.';
-                msgBox.style.display = 'block';
-            }
-            btn.innerText = "Create User";
-        },
-
-        switchTab: function(targetId) {
-            document.querySelectorAll('.view').forEach(v => {
-                if(v.id !== 'view-login') v.classList.remove('active');
-            });
-            
-            document.querySelectorAll('.nav-item').forEach(nav => nav.classList.remove('active'));
-            document.querySelector(`.nav-item[data-target="${targetId}"]`).classList.add('active');
-            
-            document.getElementById(targetId).classList.add('active');
-            if(targetId === 'view-chat') this.scrollToBottom();
-        },
-
-        logout: async function() {
-            try { await fetch('index.php?route=/api/auth&action=logout'); } catch(e) {}
-            window.location.reload(); 
-        },
-
-        toggleTheme: function() { document.body.classList.toggle('dark-mode'); },
-
-        initAFKTracking: function() {
-            const resetTimer = () => {
-                if (!this.currentUser) return;
-                if (!this.isOnline) {
-                    this.isOnline = true;
-                    document.getElementById('my-status-dot').classList.remove('offline');
-                    document.getElementById('my-status-text').innerText = "Online";
-                    fetch('index.php?route=/api/auth&action=heartbeat');
-                }
-                clearTimeout(this.afkTimer);
-                this.afkTimer = setTimeout(() => {
-                    this.isOnline = false;
-                    document.getElementById('my-status-dot').classList.add('offline');
-                    document.getElementById('my-status-text').innerText = "Offline (AFK)";
-                }, this.AFK_LIMIT);
-            };
-            window.addEventListener('mousemove', resetTimer);
-            window.addEventListener('keypress', resetTimer);
-            window.addEventListener('click', resetTimer);
-            window.addEventListener('scroll', resetTimer);
-            resetTimer();
-        },
-
-        startPolling: function() {
-            this.pollData();
-            this.pollInterval = setInterval(() => this.pollData(), 2000);
-            this.heartbeatInterval = setInterval(() => { if (this.isOnline) fetch('index.php?route=/api/auth&action=heartbeat'); }, 30000);
-        },
-
-        pollData: async function() {
-            if(!this.currentUser) return;
-            try {
-                const uRes = await fetch('index.php?route=/api/chat&action=users');
-                const uData = await uRes.json();
-                if (uData.status === 'success') this.renderUsers(uData.data);
-
-                const mRes = await fetch('index.php?route=/api/chat&action=fetch');
-                const mData = await mRes.json();
-                if (mData.status === 'success') this.renderMessages(mData.data);
-            } catch (e) { console.error("Sync Error", e); }
-        },
-
-        renderUsers: function(users) {
-            const bar = document.getElementById('users-bar');
-            let html = '';
-            users.forEach(u => {
-                if(u.role === this.currentUser) return;
-                const dotClass = u.status === 'online' ? '' : 'offline';
-                html += `<div class="user-pill"><div class="status-dot ${dotClass}" style="width:8px; height:8px;"></div>${u.role}</div>`;
-            });
-            bar.innerHTML = html;
-        },
-
-        renderMessages: function(messages) {
-            const chatBox = document.getElementById('chat-messages');
-            const isAtBottom = chatBox.scrollHeight - chatBox.scrollTop <= chatBox.clientHeight + 50;
-            chatBox.innerHTML = '<div class="sys-msg">Encryption: AES-256 Enabled. Messages Secured.</div>';
-            
-            messages.forEach(msg => {
-                const type = msg.sender_role === this.currentUser ? 'sent' : 'recv';
-                const msgDiv = document.createElement('div');
-                msgDiv.className = `message msg-${type}`;
-                msgDiv.innerHTML = `<span class="msg-sender">${msg.sender_role}</span><div>${msg.text}</div>`;
-                chatBox.appendChild(msgDiv);
-            });
-            if (isAtBottom) this.scrollToBottom();
-        },
-
-        handleEnter: function(e) { if(e.key === 'Enter') this.sendMessage(); },
-
-        sendMessage: async function() {
-            const input = document.getElementById('msg-input');
-            const text = input.value.trim();
-            if (!text) return;
-            input.value = ''; 
-            
-            const fd = new FormData();
-            fd.append('action', 'send'); fd.append('message', text); fd.append('type', 'text');
-            await fetch('index.php?route=/api/chat', { method: 'POST', body: fd });
-            this.pollData(); this.scrollToBottom();
-        },
-
-        openModal: function() { document.getElementById('snippet-modal').classList.add('active'); },
-        closeModal: function() { document.getElementById('snippet-modal').classList.remove('active'); },
-
-        sendFile: async function() {
-            const text = document.getElementById('snippet-text').value;
-            const ext = document.getElementById('snippet-ext').value;
-            if (!text) return;
-
-            const btn = document.querySelector('.modal-actions button:last-child');
-            btn.innerText = "Uploading...";
-
-            try {
-                const fd = new FormData(); fd.append('content', text); fd.append('extension', ext);
-                const res = await fetch('index.php?route=/api/file', { method: 'POST', body: fd });
-                const data = await res.json();
-
-                if (data.status === 'success') {
-                    const fileHtml = `File Generated:<br><a href="${data.url}" download="${data.filename}" target="_blank" class="file-card">📄 Download ${data.filename}</a>`;
-                    const msgFd = new FormData();
-                    msgFd.append('action', 'send'); msgFd.append('message', fileHtml); msgFd.append('type', 'file_snippet');
-                    await fetch('index.php?route=/api/chat', { method: 'POST', body: msgFd });
-                    
-                    this.closeModal(); document.getElementById('snippet-text').value = ''; this.pollData();
-                } else { console.error(data.message); }
-            } catch (e) { console.error("Upload failed", e); }
-            btn.innerText = "Generate File";
-        },
-
-        scrollToBottom: function() {
-            const chatBox = document.getElementById('chat-messages');
-            chatBox.scrollTop = chatBox.scrollHeight;
-        }
-    };
-
-    window.onload = () => app.init();
+    initAFK: function() {
+        const rst = () => {
+            if(!this.online) { this.online = true; document.getElementById('my-status-dot').className="status-dot"; document.getElementById('my-status-text').innerText="Online"; fetch('index.php?route=/api/auth&action=heartbeat'); }
+            clearTimeout(this.afkTimer);
+            this.afkTimer = setTimeout(() => { this.online = false; document.getElementById('my-status-dot').className="status-dot offline"; document.getElementById('my-status-text').innerText="AFK"; }, 120000);
+        };
+        ['mousemove','keypress','click','scroll'].forEach(e => window.addEventListener(e, rst)); rst();
+    },
+    logout: async function() { await fetch('index.php?route=/api/auth&action=logout'); window.location.reload(); },
+    scroll: function() { const b = document.getElementById('chat-messages'); b.scrollTop = b.scrollHeight; }
+};
+window.onload = () => app.init();
 </script>

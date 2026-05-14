@@ -1,47 +1,27 @@
 <?php
-// Secure Session Configuration
-ini_set('session.cookie_httponly', 1);
-ini_set('session.use_only_cookies', 1);
+require_once 'core/env.php';
 
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
-}
-
-if (!isset($_SESSION['user_id'])) {
-    die(json_encode(["status" => "unauthorized"]));
-}
-
+if (!isset($_SESSION['user_id'])) die(json_encode(["status" => "unauthorized"]));
 header('Content-Type: application/json');
-header('X-Content-Type-Options: nosniff');
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $content = $_POST['content'] ?? '';
     $ext = $_POST['extension'] ?? '.txt';
     
-    // Strict extension validation to prevent PHP shell uploads
-    $allowed_exts = ['.py', '.html', '.txt'];
-    if (!in_array($ext, $allowed_exts)) {
-        die(json_encode(["status" => "error", "message" => "Security Violation: Extension not permitted."]));
+    if (!in_array($ext, ['.py', '.html', '.txt'])) {
+        die(json_encode(["status" => "error", "message" => "Invalid extension."]));
     }
 
-    $dir = __DIR__ . '/storage';
+    $dir = __DIR__ . '/../storage';
     if (!is_dir($dir)) {
         mkdir($dir, 0755, true);
-        
-        // Protect directory from executing scripts
-        file_put_contents($dir . '/.htaccess', "Options -Indexes\nRemoveHandler .php .phtml .php3\nRemoveType .php .phtml .php3\nphp_flag engine off");
+        file_put_contents($dir . '/.htaccess', "Options -Indexes\nphp_flag engine off");
     }
 
-    // Generate unique, randomized filename
     $filename = 'slopara_' . bin2hex(random_bytes(4)) . $ext;
-    $filepath = $dir . '/' . $filename;
-
-    file_put_contents($filepath, $content);
+    file_put_contents($dir . '/' . $filename, $content);
     
-    // Return localized URL for the chat frontend to create a download card
-    $url = 'storage/' . $filename;
-
-    echo json_encode(["status" => "success", "url" => $url, "filename" => $filename]);
+    echo json_encode(["status" => "success", "url" => 'storage/' . $filename, "filename" => $filename]);
     exit;
 }
 ?>
