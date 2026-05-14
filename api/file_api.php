@@ -1,5 +1,5 @@
 <?php
-require_once __DIR__ . '/../core/env.php';
+require_once __DIR__ . '/core/env.php';
 
 if (!isset($_SESSION['user_id'])) die(json_encode(["status" => "unauthorized"]));
 header('Content-Type: application/json');

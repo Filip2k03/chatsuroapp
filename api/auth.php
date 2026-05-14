@@ -1,5 +1,5 @@
 <?php
-require_once __DIR__ . '/../core/db.php';
+require_once __DIR__ . '/core/db.php';
 header('Content-Type: application/json');
 
 $action = $_POST['action'] ?? $_GET['action'] ?? '';
