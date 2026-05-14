@@ -72,6 +72,8 @@
         currentReceiverName: '',
         deferredInstallPrompt: null,
         installDismissed: localStorage.getItem('slopara_install_dismissed') === '1',
+        notificationPermissionDismissed: localStorage.getItem('slopara_notify_dismissed') === '1',
+        lastNotifiedMsgId: 0,
         lastMsgId: 0,
         currentPollInterval: 2000,
         minPollInterval: 2000,
@@ -80,6 +82,7 @@
         init() {
             this.bindEvents();
             this.initInstallFlow();
+            this.initNotificationFlow();
             if (config.isLoggedIn) this.completeLogin(config.userRole);
             this.updateComposerState();
         },
@@ -104,6 +107,9 @@
             $('logout-btn')?.addEventListener('click', () => this.logout());
             $('install-btn')?.addEventListener('click', () => this.installApp());
             $('settings-install-btn')?.addEventListener('click', () => this.installApp());
+            $('notify-btn')?.addEventListener('click', () => this.openNotificationPrompt());
+            $('notify-modal-enable-btn')?.addEventListener('click', () => this.requestNotificationPermission());
+            $('notify-modal-close-btn')?.addEventListener('click', () => this.closeNotificationModal());
             $('install-dismiss-btn')?.addEventListener('click', () => this.dismissInstall());
             $('ios-install-close-btn')?.addEventListener('click', () => $('ios-install-modal')?.classList.remove('active'));
             document.querySelectorAll('.nav-item').forEach(item => {
@@ -125,6 +131,16 @@
             });
 
             this.updateInstallUi();
+        },
+
+        initNotificationFlow() {
+            this.updateNotificationUi();
+            if (Notification.permission === 'default' && !this.notificationPermissionDismissed) {
+                this.showNotificationToast();
+            }
+            if (Notification.permission === 'denied') {
+                this.showNotificationToast('Notifications are blocked. Enable them in browser settings.', 'error');
+            }
         },
 
         isStandalone() {
@@ -163,6 +179,132 @@
                     : 'Install for a faster app-like experience.';
                 banner.hidden = false;
             }
+        },
+
+        updateNotificationUi() {
+            const status = $('notify-status');
+            const btn = $('notify-btn');
+            if (!status || !btn) return;
+
+            if (!('Notification' in window)) {
+                status.innerText = 'This browser does not support notifications.';
+                btn.disabled = true;
+                btn.innerText = 'UNSUPPORTED';
+                return;
+            }
+
+            if (Notification.permission === 'granted') {
+                status.innerText = 'Notifications are enabled for message alerts.';
+                btn.disabled = true;
+                btn.innerText = 'ENABLED';
+                this.hideNotificationToast();
+                return;
+            }
+
+            if (Notification.permission === 'denied') {
+                status.innerText = 'Notifications are blocked. Open browser settings to allow them.';
+                btn.disabled = false;
+                btn.innerText = 'OPEN HELP';
+                this.showNotificationToast('Notifications are blocked in this browser.', 'error');
+                return;
+            }
+
+            status.innerText = 'Notifications are off. Tap below to allow alerts.';
+            btn.disabled = false;
+            btn.innerText = 'ENABLE NOTIFICATIONS';
+        },
+
+        showNotificationToast(message, type = '') {
+            let toast = $('notification-toast');
+            if (!toast) {
+                toast = document.createElement('div');
+                toast.id = 'notification-toast';
+                toast.className = 'notification-toast';
+                toast.innerHTML = `
+                    <div class="toast-copy">
+                        <strong id="notification-toast-title">Notifications</strong>
+                        <span id="notification-toast-body"></span>
+                    </div>
+                    <button id="notification-toast-action" type="button">Enable</button>
+                    <button id="notification-toast-close" type="button" class="ghost-btn">Later</button>
+                `;
+                $('app-container')?.appendChild(toast);
+                $('notification-toast-action')?.addEventListener('click', () => this.openNotificationPrompt());
+                $('notification-toast-close')?.addEventListener('click', () => this.dismissNotificationToast());
+            }
+
+            $('notification-toast-title').innerText = type === 'error' ? 'Notifications blocked' : 'Enable alerts';
+            $('notification-toast-body').innerText = message;
+            toast.className = `notification-toast active ${type}`.trim();
+        },
+
+        hideNotificationToast() {
+            $('notification-toast')?.classList.remove('active');
+        },
+
+        dismissNotificationToast() {
+            this.notificationPermissionDismissed = true;
+            localStorage.setItem('slopara_notify_dismissed', '1');
+            this.hideNotificationToast();
+        },
+
+        openNotificationModal() {
+            $('notify-modal')?.classList.add('active');
+            $('notify-modal-status').innerText = Notification.permission === 'denied'
+                ? 'Browser notifications are blocked. You must allow them in browser settings.'
+                : 'Slopara will ask the browser for permission when you tap Enable.';
+        },
+
+        closeNotificationModal() {
+            $('notify-modal')?.classList.remove('active');
+        },
+
+        async requestNotificationPermission() {
+            if (!('Notification' in window)) {
+                this.showChatNotice('This browser does not support notifications.', 'error');
+                return;
+            }
+
+            if (Notification.permission === 'granted') {
+                this.updateNotificationUi();
+                this.closeNotificationModal();
+                return;
+            }
+
+            if (Notification.permission === 'denied') {
+                this.showChatNotice('Notifications are blocked in browser settings.', 'error');
+                this.updateNotificationUi();
+                return;
+            }
+
+            try {
+                const result = await Notification.requestPermission();
+                this.closeNotificationModal();
+                this.updateNotificationUi();
+                if (result === 'granted') {
+                    this.showChatNotice('Notifications enabled.', 'success');
+                    this.notify('Slopara', 'Message alerts are now enabled.');
+                } else {
+                    this.showChatNotice('Notification permission was not granted.', 'error');
+                    this.showNotificationToast('Permission was not granted. You can enable it later from the app settings.', 'error');
+                }
+            } catch (e) {
+                this.showChatNotice('Unable to request notification permission.', 'error');
+            }
+        },
+
+        notify(title, body) {
+            if (!('Notification' in window) || Notification.permission !== 'granted') return;
+            try {
+                const n = new Notification(title, {
+                    body,
+                    icon: 'https://placehold.co/192x192/0f172a/00f0ff?text=S',
+                    badge: 'https://placehold.co/96x96/0f172a/00f0ff?text=S',
+                    tag: 'slopara-message',
+                    renotify: true
+                });
+                n.onclick = () => window.focus();
+            } catch (e) {}
         },
 
         async installApp() {
@@ -368,6 +510,14 @@
             this.lastMsgId = Math.max(...messages.map(m => parseInt(m.id, 10)));
             this.currentPollInterval = this.minPollInterval;
             if (bottom) this.scroll();
+
+            const latestIncoming = messages.filter(m => m.sender_role !== this.role).slice(-1)[0];
+            if (latestIncoming && latestIncoming.id > this.lastNotifiedMsgId) {
+                this.lastNotifiedMsgId = latestIncoming.id;
+                if (document.visibilityState !== 'visible' || this.currentReceiverId !== parseInt(this.currentReceiverId, 10)) {
+                    this.notify(`New message from ${latestIncoming.sender_name || latestIncoming.sender_role}`, latestIncoming.text || 'Open Slopara to read it.');
+                }
+            }
         },
 
         async send() {

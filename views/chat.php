@@ -109,6 +109,12 @@
                 <p id="install-status" class="section-copy">Checking install availability...</p>
                 <button id="settings-install-btn" class="btn-snippet" type="button">INSTALL APP</button>
             </div>
+
+            <div class="settings-panel">
+                <h3 class="panel-title">Notifications</h3>
+                <p id="notify-status" class="section-copy">Checking notification permission...</p>
+                <button id="notify-btn" class="btn-snippet" type="button">ENABLE NOTIFICATIONS</button>
+            </div>
             
             <button id="logout-btn" class="danger-btn">TERMINATE SESSION</button>
         </div>
@@ -162,6 +168,21 @@
                 <div><strong>3</strong><span>Open Slopara from your Home Screen</span></div>
             </div>
             <button id="ios-install-close-btn" class="btn-snippet" type="button">GOT IT</button>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="notify-modal">
+        <div class="modal-content">
+            <h3 class="panel-title">Enable Notifications</h3>
+            <p class="section-copy">Allow Slopara to show alerts for new messages and important updates while the app is in the background.</p>
+            <div class="ios-steps">
+                <div><strong>1</strong><span>Tap Enable</span></div>
+                <div><strong>2</strong><span>Allow browser permission</span></div>
+                <div><strong>3</strong><span>Receive message alerts</span></div>
+            </div>
+            <div id="notify-modal-status" class="section-copy"></div>
+            <button id="notify-modal-enable-btn" type="button">ENABLE</button>
+            <button id="notify-modal-close-btn" class="btn-snippet" type="button">NOT NOW</button>
         </div>
     </div>
 </div>
